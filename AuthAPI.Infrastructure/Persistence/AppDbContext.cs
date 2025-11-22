@@ -1,4 +1,4 @@
-﻿using AuthAPI.Application.Interfaces;
+﻿using AuthAPI.Domain.Entities.Auth;
 
 namespace AuthAPI.Infrastructure.Persistence;
 
@@ -13,11 +13,29 @@ public class AppDbContext : DbContext, IAppDbContext
     }
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Configure Many-to-Many for UserRole
+        modelBuilder.Entity<UserRole>()
+            .HasKey(ur => new { ur.UserId, ur.RoleId });
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.Role)
+            .WithMany(u => u.UserRoles)
+            .HasForeignKey(u => u.UserId);
+
+        modelBuilder.Entity<UserRole>()
+            .HasOne(ur => ur.Role)
+            .WithMany(r => r.UserRoles)
+            .HasForeignKey(ur => ur.RoleId);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
