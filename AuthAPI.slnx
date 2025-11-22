@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="docker-compose.yaml" />
+    <File Path="README.md" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="AuthAPI.Api/AuthAPI.Api.csproj" />
     <Project Path="AuthAPI.Application/AuthAPI.Application.csproj" />
