@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="AuthAPI.Api/AuthAPI.Api.csproj" />
+    <Project Path="AuthAPI.Application/AuthAPI.Application.csproj" />
+    <Project Path="AuthAPI.Domain/AuthAPI.Domain.csproj" />
+    <Project Path="AuthAPI.Infrastructure/AuthAPI.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="AuthAPI.Api.Tests/AuthAPI.Api.Tests.csproj" />
+  </Folder>
+</Solution>
