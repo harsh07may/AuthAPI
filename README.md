@@ -14,3 +14,9 @@ dotnet run
 dotnet ef migrations add <Migration Name> -p .\AuthAPI.Infrastructure -s .\AuthAPI.Api
 dotnet ef database update -p .\AuthAPI.Infrastructure -s .\AuthAPI.Api
 ```
+
+## TODO:
+
+- API key auth
+- Password reset
+- Login throttling

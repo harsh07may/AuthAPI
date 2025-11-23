@@ -46,9 +46,10 @@ public class AuthService : IAuthService
         return new AuthResponse(user.Id, user.Email, accessToken, refreshToken.Token);
 
     }
+
     public async Task<AuthResponse> LoginAsync(LoginRequest loginRequest, CancellationToken cancellationToken)
     {
-        // 1. Fetch User
+        // 1. Validate
         var user = await _context.Users
             .Include(user => user.UserRoles)
             .ThenInclude(userRole => userRole.Role)
@@ -59,7 +60,7 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Invalid credentials.");
         }
 
-        // 2. Generate Tokens & Save
+        // 2. Generate Tokens & Save to Db
         var accessToken = _jwtProvider.GenerateToken(user);
         var refreshToken = _jwtProvider.GenerateRefreshToken();
         
@@ -67,7 +68,50 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync(cancellationToken);
 
         return new AuthResponse(user.Id, user.Email, accessToken, refreshToken.Token);
- 
+    }
+
+    public async Task<bool> CreateRoleAsync(string roleName, CancellationToken cancellationToken)
+    {
+        if (await _context.Roles.AnyAsync(r => r.Name == roleName, cancellationToken))
+        {
+            throw new InvalidOperationException($"Role '{roleName}' already exists.");
+        }
+
+        var role = new Role { Id = Guid.NewGuid(), Name = roleName };
+        _context.Roles.Add(role);
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> AssignRoleAsync(string userEmail, string roleName, CancellationToken cancellationToken)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == userEmail, cancellationToken);
+
+        if (user == null)
+            throw new KeyNotFoundException($"User '{userEmail}' not found.");
+
+        var role = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Name == roleName, cancellationToken);
+
+        if (role == null)
+            throw new KeyNotFoundException($"Role '{roleName}' not found.");
+
+        var exists = await _context.UserRoles
+            .AnyAsync(ur => ur.UserId == user.Id && ur.RoleId == role.Id, cancellationToken);
+
+        if (exists)
+            throw new InvalidOperationException("User is already assigned to this role.");
+
+        _context.UserRoles.Add(new UserRole
+        {
+            UserId = user.Id,
+            RoleId = role.Id
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
 }
