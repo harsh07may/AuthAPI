@@ -1,4 +1,7 @@
-﻿namespace AuthAPI.Application.Interfaces;
+﻿using AuthAPI.Domain.Entities;
+using AuthAPI.Domain.Entities.Auth;
+
+namespace AuthAPI.Application.Interfaces;
 
 /// <summary>
 /// Represents the application's EF Core database context surface used by the application layer.
@@ -9,6 +12,11 @@
 /// </remarks>
 public interface IAppDbContext
 {
-    //DbSet<WeatherForecast> WeatherForecasts { get; }
+
+    public DbSet<AuditLog> AuditLogs { get; }
+    public DbSet<User> Users {get;}
+    public DbSet<Role> Roles {get;}
+    public DbSet<UserRole> UserRoles {get;}
+    public DbSet<RefreshToken> RefreshTokens {get;}
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

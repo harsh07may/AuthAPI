@@ -26,7 +26,7 @@ public class JwtProvider : IJwtProvider
         };
 
         // Add Roles
-        foreach (var userRole in user.Roles)
+        foreach (var userRole in user.UserRoles)
         {
             if (userRole.Role != null)
             {

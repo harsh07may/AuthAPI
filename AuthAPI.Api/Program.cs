@@ -1,6 +1,9 @@
-using AuthAPI.Api.Services;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
+using System.Text;
+using AuthAPI.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
 
 
 var app = CreateWebApplication(args);
@@ -17,6 +20,24 @@ WebApplication CreateWebApplication(string[] args)
     builder.Services.AddHealthChecks()
         .AddCheck<LivenessHealthCheck>("self")
         .AddCheck<ReadinessHealthCheck>("readiness");
+
+    // Auth services
+    var jwtConfig = builder.Configuration.GetSection("Jwt");
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtConfig["Issuer"],
+            ValidAudience = jwtConfig["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig["Secret"]!))
+        };
+    });
+    builder.Services.AddAuthorization();
 
     // Register HttpContextAccessor for accessing User Claims.
     builder.Services.AddHttpContextAccessor();
@@ -47,6 +68,7 @@ Task ConfigureAndRunApp(WebApplication app)
     }
 
     app.UseHttpsRedirection();
+    app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
 
