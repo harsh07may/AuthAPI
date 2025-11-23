@@ -22,7 +22,7 @@ WebApplication CreateWebApplication(string[] args)
         .AddCheck<ReadinessHealthCheck>("readiness");
 
     // Auth services
-    var jwtConfig = builder.Configuration.GetSection("Jwt");
+    var jwtConfig = builder.Configuration.GetSection("JwtSettings");
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
