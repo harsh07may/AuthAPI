@@ -1,8 +1,10 @@
 ﻿using AuthAPI.Application.Features.Auth.DTO; // NOTE: This is NOT Microsoft.AspNetCore.Identity.Data.RegisterRequest;
 using Azure.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using static AuthAPI.Application.Features.Auth.DTO.RoleRequest;
 
 namespace AuthAPI.Api.Controllers
@@ -18,13 +20,37 @@ namespace AuthAPI.Api.Controllers
             _authService = authService;
         }
 
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult Me()
+        {
+
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            var name = User.Identity?.Name;
+
+            return Ok(new
+            {
+                Email = email,
+                Name = name,
+                Role = role
+            });
+        }
+
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequest registerRequest, CancellationToken ct)
         {
             try
             {
                 var result = await _authService.RegisterAsync(registerRequest, ct);
-                return Ok(result);
+                SetRefreshTokenCookie(result.RefreshToken);
+                
+                return Ok(new 
+                {
+                    result.Id,
+                    result.Email,
+                    result.AccessToken 
+                });
             }
             catch (InvalidOperationException ex)
             {
@@ -38,12 +64,55 @@ namespace AuthAPI.Api.Controllers
             try
             {
                 var result = await _authService.LoginAsync(loginRequest, ct);
-                return Ok(result);
+                SetRefreshTokenCookie(result.RefreshToken);
+
+                return Ok(new 
+                { 
+                    result.Id, 
+                    result.Email, 
+                    result.AccessToken 
+                });
             }
             catch (UnauthorizedAccessException)
             {
                 return Unauthorized("Invalid credentials.");
             }
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken(CancellationToken ct)
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            if (string.IsNullOrEmpty(refreshToken))
+                return Unauthorized("No Refresh Token provided.");
+
+            try
+            {
+                var result = await _authService.RefreshTokenAsync(refreshToken, ct);
+                SetRefreshTokenCookie(result.RefreshToken);
+
+                return Ok(new { result.AccessToken });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("Invalid token.");
+            }
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(CancellationToken ct)
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                await _authService.RevokeTokenAsync(refreshToken, ct);
+            }
+
+            // Delete Cookie
+            Response.Cookies.Delete("refreshToken");
+
+            return Ok("Logged out.");
         }
 
         [HttpPost("roles")]
@@ -76,6 +145,21 @@ namespace AuthAPI.Api.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Helper to set refresh-token as HttpOnly Cookie.
+        /// </summary>
+        private void SetRefreshTokenCookie(string token)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("refreshToken", token, cookieOptions);
         }
     }
 }

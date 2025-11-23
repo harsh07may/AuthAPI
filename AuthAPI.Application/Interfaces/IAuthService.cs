@@ -7,4 +7,6 @@ public interface IAuthService
     Task<AuthResponse> LoginAsync(LoginRequest loginRequest, CancellationToken cancellationToken);
     Task<bool> CreateRoleAsync(string roleName, CancellationToken cancellationToken);
     Task<bool> AssignRoleAsync(string userEmail, string roleName, CancellationToken cancellationToken);
+    Task<AuthResponse> RefreshTokenAsync(string token, CancellationToken cancellationToken);
+    Task RevokeTokenAsync(string token, CancellationToken cancellationToken);
 }

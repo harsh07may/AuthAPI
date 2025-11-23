@@ -1,5 +1,4 @@
-﻿using AuthAPI.Application.Features.Auth.DTO;
-using AuthAPI.Domain.Entities.Auth;
+﻿using AuthAPI.Domain.Entities.Auth;
 
 namespace AuthAPI.Application.Features.Auth;
 
@@ -69,6 +68,51 @@ public class AuthService : IAuthService
 
         return new AuthResponse(user.Id, user.Email, accessToken, refreshToken.Token);
     }
+
+    public async Task<AuthResponse> RefreshTokenAsync(string token, CancellationToken cancellationToken)
+    {
+        // Find and validate token 
+        var existingToken = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                    .ThenInclude(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(rt => rt.Token == token, cancellationToken);
+
+        if (existingToken == null)
+            throw new UnauthorizedAccessException("Invalid token.");
+
+        //  Revoke old token
+        if (existingToken.IsRevoked || existingToken.ExpiryDate < DateTime.UtcNow)
+            throw new UnauthorizedAccessException("Token is expired or revoked.");
+
+        existingToken.IsRevoked = true;
+        
+        // Create new tokens and save to Db.
+        var newAccessToken = _jwtProvider.GenerateToken(existingToken.User!);
+        var newRefreshToken = _jwtProvider.GenerateRefreshToken();
+
+        existingToken.User!.RefreshTokens.Add(newRefreshToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new AuthResponse(
+            existingToken.User.Id,
+            existingToken.User.Email, 
+            newAccessToken, 
+            newRefreshToken.Token);
+    }
+
+    public async Task RevokeTokenAsync(string token, CancellationToken cancellationToken)
+    {
+        var existingToken = await _context.RefreshTokens
+            .FirstOrDefaultAsync(rt => rt.Token == token, cancellationToken);
+
+        if (existingToken != null)
+        {
+            existingToken.IsRevoked = true;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+    }
+
 
     public async Task<bool> CreateRoleAsync(string roleName, CancellationToken cancellationToken)
     {

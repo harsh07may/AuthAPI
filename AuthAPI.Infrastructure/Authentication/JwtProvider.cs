@@ -58,7 +58,7 @@ public class JwtProvider : IJwtProvider
         return new RefreshToken
         {
             Token = Convert.ToBase64String(randomNumber),
-            ExpiryDate = DateTime.UtcNow.AddDays(7), // Long lived
+            ExpiryDate = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays), // Long lived
             IsRevoked = false
         };
     }
