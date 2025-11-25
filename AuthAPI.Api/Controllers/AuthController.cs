@@ -147,6 +147,20 @@ namespace AuthAPI.Api.Controllers
             }
         }
 
+        [HttpPost("api-keys")]
+        public async Task<IActionResult> CreateApiKey(string owner, CancellationToken ct)
+        {
+            try
+            {
+                var apiKey = await _authService.GenerateApiKeyAsync(owner, ct);
+                return Ok(new { apiKey.Key, apiKey.Owner, apiKey.Expiration });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         /// <summary>
         /// Helper to set refresh-token as HttpOnly Cookie.
         /// </summary>

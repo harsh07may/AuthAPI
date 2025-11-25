@@ -158,4 +158,21 @@ public class AuthService : IAuthService
         return true;
     }
 
+    public async Task<ApiKey> GenerateApiKeyAsync(string owner, CancellationToken cancellationToken)
+    {
+        var apiKey = new ApiKey
+        {
+            Id = Guid.NewGuid(),
+            Key = Convert.ToBase64String(Guid.NewGuid().ToByteArray()) + Convert.ToBase64String(Guid.NewGuid().ToByteArray()), // Simple secure random string
+            Owner = owner,
+            Expiration = DateTime.UtcNow.AddDays(365),
+            IsActive = true
+        };
+
+        _context.ApiKeys.Add(apiKey); 
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return apiKey;
+    }
+
 }

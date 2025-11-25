@@ -1,4 +1,6 @@
-﻿namespace AuthAPI.Application.Interfaces;
+﻿using AuthAPI.Domain.Entities.Auth;
+
+namespace AuthAPI.Application.Interfaces;
 
 public interface IAuthService
 {
@@ -9,4 +11,5 @@ public interface IAuthService
     Task<bool> AssignRoleAsync(string userEmail, string roleName, CancellationToken cancellationToken);
     Task<AuthResponse> RefreshTokenAsync(string token, CancellationToken cancellationToken);
     Task RevokeTokenAsync(string token, CancellationToken cancellationToken);
+    Task<ApiKey> GenerateApiKeyAsync(string owner, CancellationToken cancellationToken);
 }

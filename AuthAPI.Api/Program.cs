@@ -1,3 +1,4 @@
+using AuthAPI.Api.Middleware;
 using AuthAPI.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -76,6 +77,7 @@ Task ConfigureAndRunApp(WebApplication app)
     }
 
     app.UseHttpsRedirection();
+    app.UseMiddleware<ApiKeyMiddleware>();
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
@@ -113,6 +115,16 @@ internal sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvi
             };
             document.Components ??= new OpenApiComponents();
             document.Components.SecuritySchemes = securitySchemes;
+
+            // Apply it as a requirement for all operations
+            foreach (var operation in document.Paths.Values.SelectMany(path => path.Operations))
+            {
+                operation.Value.Security ??= [];
+                operation.Value.Security.Add(new OpenApiSecurityRequirement
+                {
+                    [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+                });
+            }
         }
     }
 }

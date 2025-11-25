@@ -18,5 +18,6 @@ public interface IAppDbContext
     public DbSet<Role> Roles {get;}
     public DbSet<UserRole> UserRoles {get;}
     public DbSet<RefreshToken> RefreshTokens {get;}
+    public DbSet<ApiKey> ApiKeys { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
